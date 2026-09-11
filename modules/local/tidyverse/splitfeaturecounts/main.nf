@@ -31,7 +31,6 @@ process TIDYVERSE_SPLITFEATURECOUNTS {
 
     library(readr)
     library(dplyr)
-    library(purrr)
 
     ftypes <- read_tsv("${ftypes}", col_types = cols(orf = col_character(), .default = col_guess())) %>%
         select(orf, ftype)
@@ -61,7 +60,6 @@ process TIDYVERSE_SPLITFEATURECOUNTS {
             "\\"${task.process}\\":",
             paste0("    R: ", paste0(R.Version()[c("major","minor")], collapse = ".")),
             paste0("    dplyr: ", packageVersion('dplyr')),
-            paste0("    purrr: ", packageVersion('purrr')),
             paste0("    readr: ", packageVersion('readr'))
         ),
         "versions.yml"
@@ -80,7 +78,6 @@ process TIDYVERSE_SPLITFEATURECOUNTS {
     "${task.process}":
         R: 4.1.0
         dplyr: 1.0.7
-        purrr: 0.3.4
         readr: 2.0.0
     END_VERSIONS
     """
