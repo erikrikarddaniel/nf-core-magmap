@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Added`
 
-- [#NN](https://github.com/nf-core/magmap/pull/NN) - Add `Unassigned_NoFeatures`/`Unassigned_Ambiguity` columns to `overall_stats.tsv.gz`, surfacing featureCounts' "mapped but not counted" reads per sample, closes [#220](https://github.com/nf-core/magmap/issues/220) (by @erikrikarddaniel).
+- [#NN](https://github.com/nf-core/magmap/pull/NN) - Add `Unassigned_NoFeatures`/`Unassigned_Ambiguity` columns to `overall_stats.tsv.gz`, closes [#220](https://github.com/nf-core/magmap/issues/220) (by @erikrikarddaniel).
 
 ### `Changed`
 
