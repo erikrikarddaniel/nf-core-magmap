@@ -490,10 +490,9 @@ workflow MAGMAP {
 
     CUSTOM_COLLECTFEATURECOUNTS(ch_collect_featurecounts)
 
-    // CUSTOM_COLLECTFEATURECOUNTS itself is kept generic (no genome-accession lookup), so this
-    // pipeline-specific join is a separate step -- see nf-core/magmap#237, where this
-    // module is being split out into a shared nf-core/modules component and this join
-    // stays local, since attaching accno is specific to a genome-collection pipeline.
+    // CUSTOM_COLLECTFEATURECOUNTS itself is kept generic (no genome-accession lookup), since
+    // it's shared with other pipelines; attaching accno is specific to a genome-collection
+    // pipeline, so that join stays local, as a separate step.
     // .first() converts the single GENOMES2ORFS emission to a value channel so it's
     // reused for every one of CUSTOM_COLLECTFEATURECOUNTS's per-feature-type emissions --
     // without it, a queue channel with only one item would only pair with the first
