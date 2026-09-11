@@ -70,8 +70,11 @@ process TIDYVERSE_SPLITFEATURECOUNTS {
 
     stub:
     prefix = task.ext.prefix ?: "${meta.id}"
+    // Single-quoted and quote-escaped: meta.id only has to match /^\S+$/, so a shell
+    // metacharacter here would otherwise break out of the unquoted touch command.
+    safePrefix = prefix.replace("'", "'\\''")
     """
-    touch ${prefix}.CDS.featureCounts.tsv
+    touch '${safePrefix}.CDS.featureCounts.tsv'
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

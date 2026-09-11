@@ -148,6 +148,32 @@ nextflow_process {
         }
     }
 
+    test("a sample id containing a shell metacharacter doesn't break the stub - stub") {
+
+        options "-stub"
+
+        when {
+            process {
+                """
+                def counts = file("\${workDir}/semicolon.featureCounts.tsv")
+                counts.text = ''
+                def ftypes = file("\${workDir}/semicolon.orfs.tsv")
+                ftypes.text = ''
+
+                input[0] = [ [ id: 'sample;rm x' ], counts ]
+                input[1] = ftypes
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert process.success },
+                { assert process.out.counts[0][1].toString().contains('sample;rm x.CDS.featureCounts.tsv') }
+            )
+        }
+    }
+
     test("counts are split into one file per feature type, unmapped ORFs dropped - stub") {
 
         options "-stub"
