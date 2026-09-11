@@ -429,7 +429,9 @@ workflow MAGMAP {
     ch_multiqc_files = ch_multiqc_files.mix(
         FEATURECOUNTS.out.summary
             .map { meta, summary ->
-                def content = summary.text.replaceAll(/\S+\.sorted\.bam/, "${meta.id}")
+                // meta.id only has to match /^\S+$/, so quoteReplacement() guards against a
+                // literal '$'/'\' being misread as a backreference by replaceAll().
+                def content = summary.text.replaceAll(/\S+\.sorted\.bam/, java.util.regex.Matcher.quoteReplacement(meta.id))
                 [ "${meta.id}.featureCounts.tsv.summary", content ]
             }
             .collectFile { name, content -> [ name, content ] }
