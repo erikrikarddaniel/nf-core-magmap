@@ -1,0 +1,128 @@
+nextflow_function {
+
+    name "Test scanMagOutdir and validateUniqueAccnos"
+    script "../main.nf"
+    tag "subworkflows"
+    tag "utils_nfcore_magmap_pipeline"
+
+    test("scanMagOutdir: dereplicated bins, one Prokka GFF, GTDB-Tk and CheckM2") {
+
+        function "scanMagOutdir"
+
+        when {
+            function {
+                """
+                def root = file('mag_full')
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins").mkdirs()
+                file("\${root}/GenomeBinning/QC").mkdirs()
+                file("\${root}/Taxonomy/GTDB-Tk").mkdirs()
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/SPAdes-MaxBin2-s1.002.fa.gz").text = 'x'
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/MEGAHIT-MaxBin2-s1.001.fa.gz").text = 'x'
+                file("\${root}/GenomeBinning/QC/checkm2_summary.tsv").text = 'x'
+                file("\${root}/Taxonomy/GTDB-Tk/gtdbtk_summary.tsv").text = 'x'
+                file("\${root}/Annotation/Prokka/external/SPAdes-MaxBin2-s1.002").mkdirs()
+                file("\${root}/Annotation/Prokka/external/SPAdes-MaxBin2-s1.002/SPAdes-MaxBin2-s1.002.gff").text = 'x'
+                file("\${root}/Annotation/Prokka/external/SPAdes-MaxBin2-s1.002/SPAdes-MaxBin2-s1.002.gbk").text = 'x'
+                input[0] = 'mag_full'
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.success },
+                { assert function.result.genomes*.accno == ['MEGAHIT-MaxBin2-s1.001', 'SPAdes-MaxBin2-s1.002'] },
+                { assert function.result.genomes.collect { g -> g.genome_fna.toString().tokenize('/')[-1] } == ['MEGAHIT-MaxBin2-s1.001.fa.gz', 'SPAdes-MaxBin2-s1.002.fa.gz'] },
+                { assert function.result.genomes[0].genome_gff == [] },
+                { assert function.result.genomes[1].genome_gff.toString().endsWith('/Annotation/Prokka/external/SPAdes-MaxBin2-s1.002/SPAdes-MaxBin2-s1.002.gff') },
+                { assert function.result.gtdbtk_metadata.size() == 1 && function.result.gtdbtk_metadata[0].endsWith('/mag_full/Taxonomy/GTDB-Tk/gtdbtk_summary.tsv') },
+                { assert function.result.checkm_metadata.size() == 1 && function.result.checkm_metadata[0].endsWith('/mag_full/GenomeBinning/QC/checkm2_summary.tsv') }
+            )
+        }
+    }
+
+    test("scanMagOutdir: CheckM instead of CheckM2, no GTDB-Tk") {
+
+        function "scanMagOutdir"
+
+        when {
+            function {
+                """
+                def root = file('mag_checkm')
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins").mkdirs()
+                file("\${root}/GenomeBinning/QC").mkdirs()
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/bin_1.fa.gz").text = 'x'
+                file("\${root}/GenomeBinning/QC/checkm_summary.tsv").text = 'x'
+                input[0] = 'mag_checkm'
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.success },
+                { assert function.result.genomes*.accno == ['bin_1'] },
+                { assert function.result.gtdbtk_metadata == [] },
+                { assert function.result.checkm_metadata.size() == 1 && function.result.checkm_metadata[0].endsWith('/mag_checkm/GenomeBinning/QC/checkm_summary.tsv') }
+            )
+        }
+    }
+
+    test("scanMagOutdir: no dereplicated bins fails") {
+
+        function "scanMagOutdir"
+
+        when {
+            function {
+                """
+                file('mag_nobins/GenomeBinning').mkdirs()
+                input[0] = 'mag_nobins'
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.failed },
+                { assert function.stdout.any { line -> line.contains('no dereplicated bins found') } || function.stderr.any { line -> line.contains('no dereplicated bins found') } }
+            )
+        }
+    }
+
+    test("validateUniqueAccnos: distinct accessions pass") {
+
+        function "validateUniqueAccnos"
+
+        when {
+            function {
+                """
+                input[0] = [[accno: 'bin_1'], [accno: 'bin_2']]
+                """
+            }
+        }
+
+        then {
+            assert function.success
+        }
+    }
+
+    test("validateUniqueAccnos: accession in both sources fails") {
+
+        function "validateUniqueAccnos"
+
+        when {
+            function {
+                """
+                input[0] = [[accno: 'bin_1'], [accno: 'bin_2'], [accno: 'bin_1']]
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.failed },
+                { assert (function.stdout + function.stderr).any { line -> line.contains('Duplicated: bin_1') } }
+            )
+        }
+    }
+}

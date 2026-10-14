@@ -109,6 +109,7 @@ workflow {
         params.help_full,
         params.show_hidden,
         params.genomeinfo,
+        params.mag_outdir,
         params.remote_genome_sources,
         params.genome_store_dir,
         params.prokka_store_dir,

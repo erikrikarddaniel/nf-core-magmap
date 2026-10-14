@@ -31,6 +31,14 @@
                     "description": "Path to a file containing information about the genomes to map to, see [usage docs](https://nf-co.re/magmap/usage#genome-input).",
                     "schema": "assets/schema_genomeinfo.json"
                 },
+                "mag_outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "exists": true,
+                    "fa_icon": "fas fa-folder-open",
+                    "description": "Path to an nf-core/mag output directory from a run with `--dereplicate`. Its dereplicated bins are added to the genomes to map to, together with the GTDB-Tk and CheckM/CheckM2 summaries.",
+                    "help_text": "Can be combined with `--genomeinfo`. Genome accessions must be unique across the two. The directory must hold `GenomeBinning/Dereplication/dereplicated_bins/`. If present, `Taxonomy/GTDB-Tk/gtdbtk_summary.tsv` and `GenomeBinning/QC/checkm2_summary.tsv` (or `checkm_summary.tsv`) are used as `--gtdbtk_metadata` and `--checkm_metadata`."
+                },
                 "gtdb_metadata": {
                     "type": "string",
                     "description": "Comma-separated list of paths to tab-separated files containing information from GTDB. For column description, see [usage docs](https://nf-co.re/magmap/usage#gtdb-metadata).",

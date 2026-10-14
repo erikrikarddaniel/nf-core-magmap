@@ -132,6 +132,25 @@ Any genome used by the pipeline for which a gff file is not found will be annota
 | `genome_fna` | Full path to Fasta file that contains nucleotide sequences of your genome. File can be gzipped and have the extension ".fna.gz" or "fna".                                          |
 | `genome_gff` | Full path to gff file of your genome. File can be gzipped and have the extension ".gff.gz" or ".gff".                                                                              |
 
+### Genomes from nf-core/mag
+
+[`--mag_outdir`](https://nf-co.re/magmap/parameters/#mag_outdir) takes the output directory of an nf-core/mag run with `--dereplicate`, and adds its dereplicated bins to the genomes to map to.
+This needs an nf-core/mag version that has `--dereplicate`.
+At the time of writing that is the development version, so the output layout could still change.
+
+The pipeline reads the following from the directory, and uses it in the same way as the corresponding `--genomeinfo` and metadata inputs:
+
+| Path in the mag output                                         | Used as                                                                                                                   |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `GenomeBinning/Dereplication/dereplicated_bins/*.fa.gz`        | Genomes. The `accno` is the file name without `.fa.gz`.                                                                   |
+| `Annotation/Prokka/*/<bin>/<bin>.gff`                          | The gff file of a bin, when it exists. Bins without one are annotated by magmap. mag only runs Prokka on representatives. |
+| `Taxonomy/GTDB-Tk/gtdbtk_summary.tsv`                          | Added to `--gtdbtk_metadata`, if it exists.                                                                               |
+| `GenomeBinning/QC/checkm2_summary.tsv` or `checkm_summary.tsv` | Added to `--checkm_metadata`, if it exists.                                                                               |
+
+`--mag_outdir` can be combined with `--genomeinfo`, `--gtdbtk_metadata` and `--checkm_metadata`, for instance to map to MAGs from an earlier study as well.
+The genomes and the metadata files are added together.
+Genome accessions must be unique across all sources, and the pipeline stops with an error if one occurs twice.
+
 ### Genome index input
 
 In addition to, or instead of, providing a genome file with genomes to map to, you can provide a [Sourmash](https://sourmash.readthedocs.io/en/latest/) index file that points to genomes.

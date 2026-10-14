@@ -36,6 +36,7 @@ workflow PIPELINE_INITIALISATION {
     help_full               // boolean: Show the full help message
     show_hidden             // boolean: Show hidden parameters in the help message
     genomeinfo              //  string: Path to user-provided genome sheet
+    mag_outdir              //  string: Path to an nf-core/mag output directory from a run with --dereplicate
     remote_genome_sources   //  string: Comma-separated list of NCBI-style genome summary files
     genome_store_dir        //  string: Path to a directory where genome annotation files will be stored
     prokka_store_dir        //  string: Path to a directory where Prokka annotation files will be stored
@@ -143,21 +144,23 @@ workflow PIPELINE_INITIALISATION {
         .set { ch_samplesheet }
 
     //
-    // INPUT: if the user provides --genomeinfo, populate ch_genomeinfo with a table that provides the genomes to filter with sourmash
+    // INPUT: genomes from --genomeinfo and --mag_outdir, which can be combined, to filter with sourmash
     //
-    ch_genomeinfo = channel.empty()
+    def mag = mag_outdir ? scanMagOutdir(mag_outdir) : [ genomes: [], gtdbtk_metadata: [], checkm_metadata: [] ]
+    def genomes = []
     if ( genomeinfo ) {
-        channel
-            .fromPath(genomeinfo)
-            .splitCsv(sep: ',', header: true)
-            .map { it -> [
-                    accno: it.accno,
-                    genome_fna: file(it.genome_fna),
-                    genome_gff: it.genome_gff ? file(it.genome_gff) : []
-                ]
-            }
-            .set { ch_genomeinfo }
+        genomes += file(genomeinfo).splitCsv(header: true).collect { row -> [
+                accno: row.accno,
+                genome_fna: file(row.genome_fna),
+                genome_gff: row.genome_gff ? file(row.genome_gff) : []
+            ]
+        }
     }
+    genomes += mag.genomes
+    validateUniqueAccnos(genomes)
+    ch_genomeinfo = channel.fromList(genomes)
+    def all_gtdbtk_metadata = ([ gtdbtk_metadata ] + mag.gtdbtk_metadata).findAll { f -> f }.join(',')
+    def all_checkm_metadata = ([ checkm_metadata ] + mag.checkm_metadata).findAll { f -> f }.join(',')
 
     //
     // INPUT: genome info from ncbi
@@ -208,14 +211,14 @@ workflow PIPELINE_INITIALISATION {
     // Return an error if the user asks for a species_preference that requires genome
     // metadata we don't have.
     //
-    if (species_preference in ['local', 'completeness', 'gtdb'] && (!gtdb_metadata || !gtdbtk_metadata)) {
+    if (species_preference in ['local', 'completeness', 'gtdb'] && (!gtdb_metadata || !all_gtdbtk_metadata)) {
         error("--species_preference '${species_preference}' requires genome metadata. Please provide both --gtdb_metadata and --gtdbtk_metadata, or set --species_preference to 'all'.")
     }
-    if (species_preference in ['completeness', 'gtdb'] && !checkm_metadata) {
+    if (species_preference in ['completeness', 'gtdb'] && !all_checkm_metadata) {
         error("--species_preference '${species_preference}' additionally requires --checkm_metadata.")
     }
     if ( genomeinfo ) {
-        validateGenomeMetadataIds(genomeinfo, gtdb_metadata, gtdbtk_metadata, checkm_metadata).each { msg -> log.warn(msg) }
+        validateGenomeMetadataIds(genomeinfo, gtdb_metadata, all_gtdbtk_metadata, all_checkm_metadata).each { msg -> log.warn(msg) }
     }
 
     //
@@ -229,16 +232,16 @@ workflow PIPELINE_INITIALISATION {
     }
 
     ch_gtdbtk_metadata = channel.empty()
-    if ( gtdbtk_metadata ) {
+    if ( all_gtdbtk_metadata ) {
         ch_gtdbtk_metadata = channel
-            .of(gtdbtk_metadata.split(','))
+            .of(all_gtdbtk_metadata.split(','))
             .map { it -> file(it) }
     }
 
     ch_checkm_metadata = channel.empty()
-    if ( checkm_metadata ) {
+    if ( all_checkm_metadata ) {
         ch_checkm_metadata = channel
-            .of(checkm_metadata.split(','))
+            .of(all_checkm_metadata.split(','))
             .map { it -> file(it) }
     }
 
@@ -327,6 +330,47 @@ def validateInputSamplesheet(input) {
     }
 
     return [ metas[0], fastqs ]
+}
+
+//
+// Error if two genomes share an accno: it keys the genome store, the annotation caches and the metadata join
+//
+def validateUniqueAccnos(genomes) {
+    def duplicates = genomes.countBy { genome -> genome.accno }.findAll { _accno, n -> n > 1 }.keySet()
+    if ( duplicates ) {
+        error("Genome accessions must be unique across --genomeinfo and --mag_outdir. Duplicated: ${duplicates.sort().take(5).join(', ')}${duplicates.size() > 5 ? ', ...' : ''}")
+    }
+}
+
+def existingFiles(dir, relpaths) {
+    return relpaths.collect { rel -> file("${dir}/${rel}") }.findAll { f -> f.exists() }.collect { f -> f.toString() }
+}
+
+//
+// Genomes, Prokka GFFs when present and metadata files in an nf-core/mag output directory from a run with --dereplicate
+//
+def scanMagOutdir(mag_outdir) {
+    def bins = file("${mag_outdir}/GenomeBinning/Dereplication/dereplicated_bins/*.fa.gz").sort { bin -> bin.name }
+    if ( !bins ) {
+        error("--mag_outdir ${mag_outdir}: no dereplicated bins found in GenomeBinning/Dereplication/dereplicated_bins/. Run nf-core/mag with --dereplicate.")
+    }
+    def gtdbtk = existingFiles(mag_outdir, [ 'Taxonomy/GTDB-Tk/gtdbtk_summary.tsv' ])
+    def checkm = existingFiles(mag_outdir, [ 'GenomeBinning/QC/checkm_summary.tsv', 'GenomeBinning/QC/checkm2_summary.tsv' ])
+    if ( !gtdbtk ) {
+        log.warn("--mag_outdir ${mag_outdir}: no GTDB-Tk summary found, so these genomes will have no taxonomy.")
+    }
+    if ( !checkm ) {
+        log.warn("--mag_outdir ${mag_outdir}: no CheckM or CheckM2 summary found, so these genomes will have no quality metadata.")
+    }
+    def gffs = file("${mag_outdir}/Annotation/Prokka/*/*/*.gff").collectEntries { gff -> [ gff.name.replaceFirst(/\.gff$/, ''), gff ] }
+    return [
+        genomes: bins.collect { bin ->
+            def accno = bin.name.replaceFirst(/\.fa\.gz$/, '')
+            [ accno: accno, genome_fna: bin, genome_gff: gffs[accno] ?: [] ]
+        },
+        gtdbtk_metadata: gtdbtk,
+        checkm_metadata: checkm
+    ]
 }
 
 //
