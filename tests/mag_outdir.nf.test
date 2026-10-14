@@ -1,0 +1,100 @@
+nextflow_pipeline {
+
+    name "Test pipeline"
+    script "../main.nf"
+    tag "pipeline"
+    profile 'test_mag_outdir'
+
+    // TODO: switch to nf-core once the fixture is merged in nf-core/test-datasets
+    def fixture_url = 'https://raw.githubusercontent.com/erikrikarddaniel/test-datasets/magmap/testdata/mag_dereplicated'
+    def fixture_files = [
+        'GenomeBinning/Dereplication/dereplicated_bins/MEGAHIT-MaxBin2-minigut.001.fa.gz',
+        'GenomeBinning/Dereplication/dereplicated_bins/SPAdes-MaxBin2-test_minigut.002.fa.gz',
+        'GenomeBinning/Dereplication/dereplicated_bins/SPAdes-MaxBin2-test_minigut_sample2.001.fa.gz',
+        'GenomeBinning/QC/checkm2_summary.tsv',
+        'Taxonomy/GTDB-Tk/gtdbtk_summary.tsv',
+        'Annotation/Prokka/external/MEGAHIT-MaxBin2-minigut.001/MEGAHIT-MaxBin2-minigut.001.gff',
+        'Annotation/Prokka/external/SPAdes-MaxBin2-test_minigut.002/SPAdes-MaxBin2-test_minigut.002.gff',
+        'Annotation/Prokka/external/SPAdes-MaxBin2-test_minigut_sample2.001/SPAdes-MaxBin2-test_minigut_sample2.001.gff',
+    ]
+
+    def fetch_fixture = { dir ->
+        fixture_files.each { rel ->
+            def dest = new File("$dir/$rel")
+            dest.parentFile.mkdirs()
+            if (!dest.exists()) {
+                new URL("$fixture_url/$rel").withInputStream { input -> dest.withOutputStream { out -> out << input } }
+            }
+        }
+        return dir
+    }
+
+    test("-profile test_mag_outdir") {
+
+        when {
+            def mag_dir = fetch_fixture("$launchDir/mag_outdir")
+            params {
+                outdir = "$outputDir"
+                mag_outdir = mag_dir
+            }
+        }
+
+        then {
+            // stable_path: All files + folders in ${params.outdir}/ with a stable name
+            def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}', 'multiqc/multiqc_plots', 'multiqc/multiqc_plots/**'])
+            // stable_content: All files in ${params.outdir}/ with stable content
+            def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+            def table = path("${params.outdir}/summary_tables/magmap.genome_metadata.tsv.gz").linesGzip.collect { l -> l.split('\t') as List }
+            def metadata = table.drop(1).collect { r -> [ table[0], r ].transpose().collectEntries { k, v -> [ (k): v ] } }
+            assertAll(
+                { assert workflow.success},
+                { assert snapshot(
+                    // Number of successful tasks
+                    workflow.trace.succeeded().size(),
+                    // pipeline versions.yml file for multiqc from which Nextflow version is removed because we test pipelines on multiple Nextflow versions
+                    removeNextflowVersion("$outputDir/pipeline_info/nf_core_magmap_software_mqc_versions.yml"),
+                    // All stable path name, with a relative path
+                    stable_path,
+                    // All files with stable contents
+                    stable_content,
+                    // Important files with unstable content
+                    path("${params.outdir}/summary_tables/magmap.genome_metadata.tsv.gz").linesGzip.findAll { l -> l.contains('accno') || l.contains('minigut') },
+                    path("${params.outdir}/summary_tables/magmap.genome_selection.tsv.gz").linesGzip.findAll { l -> l.contains('minigut') },
+                    path("${params.outdir}/summary_tables/magmap.genomes2orfs.tsv.gz").linesGzip.findAll { l -> l.contains('accno') || l.contains('minigut') },
+                ).match() },
+                // The representatives and the genome from --genomeinfo are all used
+                { assert metadata*.accno.toSet() == ['GCA_002688505.1', 'MEGAHIT-MaxBin2-minigut.001', 'SPAdes-MaxBin2-test_minigut.002', 'SPAdes-MaxBin2-test_minigut_sample2.001'].toSet() },
+                // The bin that is a cluster member, not a representative, is not
+                { assert !metadata.any { r -> r.accno == 'MEGAHIT-MaxBin2-minigut.002' } },
+                // Taxonomy and quality come from the mag summaries
+                { assert metadata.find { r -> r.accno == 'SPAdes-MaxBin2-test_minigut.002' }.gtdb_taxonomy.endsWith('g__Escherichia;s__Escherichia coli') },
+                { assert metadata.find { r -> r.accno == 'SPAdes-MaxBin2-test_minigut.002' }.checkm_completeness == '17.2' },
+                { assert metadata.find { r -> r.accno == 'SPAdes-MaxBin2-test_minigut_sample2.001' }.gtdb_taxonomy == 'Unclassified Bacteria' },
+                // Bins with a Prokka gff from mag are not annotated again
+                { assert !workflow.trace.tasks().any { t -> t.name.contains(':PROKKA (') } },
+                { assert workflow.trace.tasks().count { t -> t.name.contains('PROKKAGFF2TSV') } == 4 },
+            )
+        }
+    }
+
+    test("-profile test_mag_outdir, accno in both --genomeinfo and --mag_outdir") {
+
+        when {
+            def mag_dir = fetch_fixture("$launchDir/mag_outdir")
+            def sheet = new File("$launchDir/genomeinfo_duplicate.csv")
+            sheet.text = "accno,genome_fna\nSPAdes-MaxBin2-test_minigut.002,https://raw.githubusercontent.com/nf-core/test-datasets/magmap/testdata/GCA_002688505.1_ASM268850v1_genomic.fna.gz\n"
+            params {
+                outdir = "$outputDir"
+                mag_outdir = mag_dir
+                genomeinfo = sheet.path
+            }
+        }
+
+        then {
+            assertAll(
+                { assert workflow.failed },
+                { assert workflow.stdout.any { l -> l.contains('Duplicated: SPAdes-MaxBin2-test_minigut.002') } || workflow.stderr.any { l -> l.contains('Duplicated: SPAdes-MaxBin2-test_minigut.002') } }
+            )
+        }
+    }
+}
