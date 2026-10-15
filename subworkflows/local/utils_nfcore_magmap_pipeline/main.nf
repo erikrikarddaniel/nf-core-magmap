@@ -379,7 +379,7 @@ def existingFiles(dir, relpaths) {
 // Genomes, Prokka GFFs when present and metadata files in an nf-core/mag output directory from a run with --dereplicate
 //
 def scanMagOutdir(mag_outdir, mag_filter) {
-    def bins = file("${mag_outdir}/GenomeBinning/Dereplication/dereplicated_bins/*.fa.gz").sort { bin -> bin.name }
+    def bins = files("${mag_outdir}/GenomeBinning/Dereplication/dereplicated_bins/*.fa.gz").sort { bin -> bin.name }
     if ( !bins ) {
         error("--mag_outdir ${mag_outdir}: no dereplicated bins found in GenomeBinning/Dereplication/dereplicated_bins/. Run nf-core/mag with --dereplicate.")
     }
@@ -391,7 +391,7 @@ def scanMagOutdir(mag_outdir, mag_filter) {
     if ( !checkm ) {
         log.warn("--mag_outdir ${mag_outdir}: no CheckM or CheckM2 summary found, so these genomes will have no quality metadata.")
     }
-    def gffs = file("${mag_outdir}/Annotation/Prokka/*/*/*.gff").collectEntries { gff -> [ gff.name.replaceFirst(/\.gff$/, ''), gff ] }
+    def gffs = files("${mag_outdir}/Annotation/Prokka/*/*/*.gff").collectEntries { gff -> [ gff.name.replaceFirst(/\.gff$/, ''), gff ] }
     def genomes = bins.collect { bin ->
         def accno = bin.name.replaceFirst(/\.fa\.gz$/, '')
         [ accno: accno, genome_fna: bin, genome_gff: gffs[accno] ?: [] ]
