@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### `Added`
 
-- [#NN](https://github.com/nf-core/magmap/pull/NN) - Add `--mag_outdir`, which takes the dereplicated bins, Prokka gff files, GTDB-Tk and CheckM/CheckM2 summaries from an nf-core/mag output directory, closes [#280](https://github.com/nf-core/magmap/issues/280) (by @erikrikarddaniel).
+- [#NN](https://github.com/nf-core/magmap/pull/NN) - Add `--mag_outdir`, which takes the dereplicated bins, Prokka gff files, GTDB-Tk and CheckM/CheckM2 summaries from an nf-core/mag output directory, and `--mag_filter gtdb`, which keeps only the bins that pass GTDB's quality criteria on the CheckM2 estimates, closes [#280](https://github.com/nf-core/magmap/issues/280) (by @erikrikarddaniel).
 
 ### `Changed`
 

@@ -1,6 +1,6 @@
 nextflow_function {
 
-    name "Test scanMagOutdir and validateUniqueAccnos"
+    name "Test scanMagOutdir, validateUniqueAccnos and the GTDB quality filter"
     script "../main.nf"
     tag "subworkflows"
     tag "utils_nfcore_magmap_pipeline"
@@ -24,6 +24,7 @@ nextflow_function {
                 file("\${root}/Annotation/Prokka/external/SPAdes-MaxBin2-s1.002/SPAdes-MaxBin2-s1.002.gff").text = 'x'
                 file("\${root}/Annotation/Prokka/external/SPAdes-MaxBin2-s1.002/SPAdes-MaxBin2-s1.002.gbk").text = 'x'
                 input[0] = 'mag_full'
+                input[1] = 'none'
                 """
             }
         }
@@ -54,6 +55,7 @@ nextflow_function {
                 file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/bin_1.fa.gz").text = 'x'
                 file("\${root}/GenomeBinning/QC/checkm_summary.tsv").text = 'x'
                 input[0] = 'mag_checkm'
+                input[1] = 'none'
                 """
             }
         }
@@ -77,6 +79,7 @@ nextflow_function {
                 """
                 file('mag_nobins/GenomeBinning').mkdirs()
                 input[0] = 'mag_nobins'
+                input[1] = 'none'
                 """
             }
         }
@@ -85,6 +88,138 @@ nextflow_function {
             assertAll(
                 { assert function.failed },
                 { assert function.stdout.any { line -> line.contains('no dereplicated bins found') } || function.stderr.any { line -> line.contains('no dereplicated bins found') } }
+            )
+        }
+    }
+
+    test("scanMagOutdir: --mag_filter gtdb keeps passing bins, boundaries included") {
+
+        function "scanMagOutdir"
+
+        when {
+            function {
+                """
+                def root = file('mag_filter')
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins").mkdirs()
+                file("\${root}/GenomeBinning/QC").mkdirs()
+                def rows = [ pass: [95, 1], score_boundary: [55, 1], low_score: [55, 2], contamination_boundary: [90, 5], low_completeness: [40, 0] ]
+                rows.keySet().each { name -> file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/\${name}.fa.gz").text = 'x' }
+                file("\${root}/GenomeBinning/QC/checkm2_summary.tsv").text = 'Name\tCompleteness\tContamination\\n' + rows.collect { name, v -> "\${name}\t\${v[0]}\t\${v[1]}" }.join('\\n') + '\\n'
+                input[0] = 'mag_filter'
+                input[1] = 'gtdb'
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.success },
+                // contamination < 5 excludes 5.0 and completeness - 5 * contamination >= 50 includes 50.0
+                { assert function.result.genomes*.accno == ['pass', 'score_boundary'] }
+            )
+        }
+    }
+
+    test("scanMagOutdir: --mag_filter none keeps every bin") {
+
+        function "scanMagOutdir"
+
+        when {
+            function {
+                """
+                def root = file('mag_nofilter')
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins").mkdirs()
+                file("\${root}/GenomeBinning/QC").mkdirs()
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/bad.fa.gz").text = 'x'
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/good.fa.gz").text = 'x'
+                file("\${root}/GenomeBinning/QC/checkm2_summary.tsv").text = 'Name\tCompleteness\tContamination\\nbad\t10\t9\\ngood\t95\t1\\n'
+                input[0] = 'mag_nofilter'
+                input[1] = 'none'
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.success },
+                { assert function.result.genomes*.accno == ['bad', 'good'] }
+            )
+        }
+    }
+
+    test("scanMagOutdir: --mag_filter gtdb without a CheckM2 summary fails") {
+
+        function "scanMagOutdir"
+
+        when {
+            function {
+                """
+                def root = file('mag_filter_nocheckm2')
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins").mkdirs()
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/bin_1.fa.gz").text = 'x'
+                input[0] = 'mag_filter_nocheckm2'
+                input[1] = 'gtdb'
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.failed },
+                { assert (function.stdout + function.stderr).any { line -> line.contains('needs the CheckM2 summary') } }
+            )
+        }
+    }
+
+    test("scanMagOutdir: --mag_filter gtdb with a bin missing from the CheckM2 summary fails") {
+
+        function "scanMagOutdir"
+
+        when {
+            function {
+                """
+                def root = file('mag_filter_missing')
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins").mkdirs()
+                file("\${root}/GenomeBinning/QC").mkdirs()
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/bin_1.fa.gz").text = 'x'
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/bin_2.fa.gz").text = 'x'
+                file("\${root}/GenomeBinning/QC/checkm2_summary.tsv").text = 'Name\tCompleteness\tContamination\\nbin_1\t95\t1\\n'
+                input[0] = 'mag_filter_missing'
+                input[1] = 'gtdb'
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.failed },
+                { assert (function.stdout + function.stderr).any { line -> line.contains('bins missing from') && line.contains('bin_2') } }
+            )
+        }
+    }
+
+    test("scanMagOutdir: --mag_filter gtdb that removes every bin fails") {
+
+        function "scanMagOutdir"
+
+        when {
+            function {
+                """
+                def root = file('mag_filter_none_pass')
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins").mkdirs()
+                file("\${root}/GenomeBinning/QC").mkdirs()
+                file("\${root}/GenomeBinning/Dereplication/dereplicated_bins/bin_1.fa.gz").text = 'x'
+                file("\${root}/GenomeBinning/QC/checkm2_summary.tsv").text = 'Name\tCompleteness\tContamination\\nbin_1\t50.5\t9.9\\n'
+                input[0] = 'mag_filter_none_pass'
+                input[1] = 'gtdb'
+                """
+            }
+        }
+
+        then {
+            assertAll(
+                { assert function.failed },
+                { assert (function.stdout + function.stderr).any { line -> line.contains('pass GTDB') } }
             )
         }
     }

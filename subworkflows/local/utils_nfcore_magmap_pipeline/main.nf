@@ -37,6 +37,7 @@ workflow PIPELINE_INITIALISATION {
     show_hidden             // boolean: Show hidden parameters in the help message
     genomeinfo              //  string: Path to user-provided genome sheet
     mag_outdir              //  string: Path to an nf-core/mag output directory from a run with --dereplicate
+    mag_filter              //  string: 'none' or 'gtdb' to keep only mag bins that pass GTDB's quality criteria
     remote_genome_sources   //  string: Comma-separated list of NCBI-style genome summary files
     genome_store_dir        //  string: Path to a directory where genome annotation files will be stored
     prokka_store_dir        //  string: Path to a directory where Prokka annotation files will be stored
@@ -146,7 +147,7 @@ workflow PIPELINE_INITIALISATION {
     //
     // INPUT: genomes from --genomeinfo and --mag_outdir, which can be combined, to filter with sourmash
     //
-    def mag = mag_outdir ? scanMagOutdir(mag_outdir) : [ genomes: [], gtdbtk_metadata: [], checkm_metadata: [] ]
+    def mag = mag_outdir ? scanMagOutdir(mag_outdir, mag_filter) : [ genomes: [], gtdbtk_metadata: [], checkm_metadata: [] ]
     def genomes = []
     if ( genomeinfo ) {
         genomes += file(genomeinfo).splitCsv(header: true).collect { row -> [
@@ -342,6 +343,34 @@ def validateUniqueAccnos(genomes) {
     }
 }
 
+//
+// GTDB r226 quality criteria on CheckM2 estimates: completeness >= 50, contamination < 5 and
+// completeness - 5 * contamination >= 50, of which the last implies the first
+//
+def passesGtdbQuality(completeness, contamination) {
+    return contamination < 5 && completeness - 5 * contamination >= 50
+}
+
+def filterGtdbQuality(genomes, mag_outdir) {
+    def summary = file("${mag_outdir}/GenomeBinning/QC/checkm2_summary.tsv")
+    if ( !summary.exists() ) {
+        error("--mag_filter gtdb needs the CheckM2 summary of nf-core/mag, ${summary}, which does not exist.")
+    }
+    def quality = summary.splitCsv(header: true, sep: '\t').collectEntries { row -> [ row.Name, row ] }
+    def missing = genomes*.accno.findAll { accno -> !quality.containsKey(accno) }
+    if ( missing ) {
+        error("--mag_filter gtdb: bins missing from ${summary}: ${missing.take(5).join(', ')}${missing.size() > 5 ? ', ...' : ''}")
+    }
+    def passed = genomes.findAll { genome ->
+        passesGtdbQuality(quality[genome.accno].Completeness as double, quality[genome.accno].Contamination as double)
+    }
+    if ( !passed ) {
+        error("--mag_filter gtdb: none of the ${genomes.size()} bins in ${mag_outdir} pass GTDB's quality criteria.")
+    }
+    log.info("--mag_filter gtdb: kept ${passed.size()} of ${genomes.size()} bins from ${mag_outdir}.")
+    return passed
+}
+
 def existingFiles(dir, relpaths) {
     return relpaths.collect { rel -> file("${dir}/${rel}") }.findAll { f -> f.exists() }.collect { f -> f.toString() }
 }
@@ -349,7 +378,7 @@ def existingFiles(dir, relpaths) {
 //
 // Genomes, Prokka GFFs when present and metadata files in an nf-core/mag output directory from a run with --dereplicate
 //
-def scanMagOutdir(mag_outdir) {
+def scanMagOutdir(mag_outdir, mag_filter) {
     def bins = file("${mag_outdir}/GenomeBinning/Dereplication/dereplicated_bins/*.fa.gz").sort { bin -> bin.name }
     if ( !bins ) {
         error("--mag_outdir ${mag_outdir}: no dereplicated bins found in GenomeBinning/Dereplication/dereplicated_bins/. Run nf-core/mag with --dereplicate.")
@@ -363,11 +392,15 @@ def scanMagOutdir(mag_outdir) {
         log.warn("--mag_outdir ${mag_outdir}: no CheckM or CheckM2 summary found, so these genomes will have no quality metadata.")
     }
     def gffs = file("${mag_outdir}/Annotation/Prokka/*/*/*.gff").collectEntries { gff -> [ gff.name.replaceFirst(/\.gff$/, ''), gff ] }
+    def genomes = bins.collect { bin ->
+        def accno = bin.name.replaceFirst(/\.fa\.gz$/, '')
+        [ accno: accno, genome_fna: bin, genome_gff: gffs[accno] ?: [] ]
+    }
+    if ( mag_filter == 'gtdb' ) {
+        genomes = filterGtdbQuality(genomes, mag_outdir)
+    }
     return [
-        genomes: bins.collect { bin ->
-            def accno = bin.name.replaceFirst(/\.fa\.gz$/, '')
-            [ accno: accno, genome_fna: bin, genome_gff: gffs[accno] ?: [] ]
-        },
+        genomes: genomes,
         gtdbtk_metadata: gtdbtk,
         checkm_metadata: checkm
     ]

@@ -29,6 +29,21 @@ nextflow_pipeline {
         return dir
     }
 
+    def fetch_filtered_fixture = { dir ->
+        fetch_fixture(dir)
+        def estimates = [
+            'MEGAHIT-MaxBin2-minigut.001': ['95.0', '1.0'],
+            'SPAdes-MaxBin2-test_minigut.002': ['55.0', '2.0'],
+            'SPAdes-MaxBin2-test_minigut_sample2.001': ['90.0', '6.0'],
+        ]
+        def qc = new File("$dir/GenomeBinning/QC/checkm2_summary.tsv")
+        qc.text = qc.readLines().collect { l ->
+            def f = l.split('\t', -1)
+            estimates.containsKey(f[0]) ? ([f[0]] + estimates[f[0]] + f[3..-1]).join('\t') : l
+        }.join('\n') + '\n'
+        return dir
+    }
+
     test("-profile test_mag_outdir") {
 
         when {
@@ -73,6 +88,33 @@ nextflow_pipeline {
                 // Bins with a Prokka gff from mag are not annotated again
                 { assert !workflow.trace.tasks().any { t -> t.name.contains(':PROKKA (') } },
                 { assert workflow.trace.tasks().count { t -> t.name.contains('PROKKAGFF2TSV') } == 4 },
+            )
+        }
+    }
+
+    test("-profile test_mag_outdir, --mag_filter gtdb") {
+
+        when {
+            def mag_dir = fetch_filtered_fixture("$launchDir/mag_outdir_filter")
+            params {
+                outdir = "$outputDir"
+                mag_outdir = mag_dir
+                mag_filter = 'gtdb'
+            }
+        }
+
+        then {
+            def table = path("${params.outdir}/summary_tables/magmap.genome_metadata.tsv.gz").linesGzip.collect { l -> l.split('\t') as List }
+            def metadata = table.drop(1).collect { r -> [ table[0], r ].transpose().collectEntries { k, v -> [ (k): v ] } }
+            assertAll(
+                { assert workflow.success},
+                { assert snapshot(
+                    workflow.trace.succeeded().size(),
+                    path("${params.outdir}/summary_tables/magmap.genome_metadata.tsv.gz").linesGzip.findAll { l -> l.contains('accno') || l.contains('minigut') },
+                ).match() },
+                // One bin passes. One fails on completeness minus five times contamination only, and one on contamination only
+                { assert metadata*.accno.toSet() == ['GCA_002688505.1', 'MEGAHIT-MaxBin2-minigut.001'].toSet() },
+                { assert workflow.trace.tasks().count { t -> t.name.contains('PROKKAGFF2TSV') } == 2 },
             )
         }
     }

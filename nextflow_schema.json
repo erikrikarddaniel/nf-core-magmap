@@ -39,6 +39,14 @@
                     "description": "Path to an nf-core/mag output directory from a run with `--dereplicate`. Its dereplicated bins are added to the genomes to map to, together with the GTDB-Tk and CheckM/CheckM2 summaries.",
                     "help_text": "Can be combined with `--genomeinfo`. Genome accessions must be unique across the two. The directory must hold `GenomeBinning/Dereplication/dereplicated_bins/`. If present, `Taxonomy/GTDB-Tk/gtdbtk_summary.tsv` and `GenomeBinning/QC/checkm2_summary.tsv` (or `checkm_summary.tsv`) are used as `--gtdbtk_metadata` and `--checkm_metadata`."
                 },
+                "mag_filter": {
+                    "type": "string",
+                    "description": "Keep only the bins from `--mag_outdir` that pass a quality filter: 'none' or 'gtdb'.",
+                    "default": "none",
+                    "help_text": "'gtdb' keeps bins that pass GTDB's quality criteria (release 226) on the CheckM2 estimates in `GenomeBinning/QC/checkm2_summary.tsv`: contamination below 5% and completeness minus five times contamination of at least 50. The CheckM2 summary is required. Genomes from `--genomeinfo` are not filtered. Use it with `--species_preference local` to prefer local genomes only when they are good enough.",
+                    "enum": ["none", "gtdb"],
+                    "fa_icon": "fas fa-filter"
+                },
                 "gtdb_metadata": {
                     "type": "string",
                     "description": "Comma-separated list of paths to tab-separated files containing information from GTDB. For column description, see [usage docs](https://nf-co.re/magmap/usage#gtdb-metadata).",

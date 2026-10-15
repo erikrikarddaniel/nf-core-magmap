@@ -151,6 +151,21 @@ The pipeline reads the following from the directory, and uses it in the same way
 The genomes and the metadata files are added together.
 Genome accessions must be unique across all sources, and the pipeline stops with an error if one occurs twice.
 
+#### Filtering the bins
+
+mag keeps bins of modest quality, so some of the bins may be worse than a GTDB representative of the same species.
+[`--mag_filter gtdb`](https://nf-co.re/magmap/parameters/#mag_filter) keeps only the bins that pass GTDB's quality criteria, using the estimates in `GenomeBinning/QC/checkm2_summary.tsv`:
+
+- Contamination is below 5%.
+- Completeness minus five times contamination is at least 50.
+
+These are the criteria of GTDB release 226 applied to the CheckM2 estimates only.
+GTDB also requires that CheckM1 passes, and has limits on contig count, N50 and ambiguous bases that are not checked here.
+Bins missing from the CheckM2 summary make the pipeline stop with an error, and so does a filter that removes all bins.
+Genomes from `--genomeinfo` are never filtered.
+
+Combine it with `--species_preference local` to prefer a local genome over a remote one of the same species only when the local genome is good enough.
+
 ### Genome index input
 
 In addition to, or instead of, providing a genome file with genomes to map to, you can provide a [Sourmash](https://sourmash.readthedocs.io/en/latest/) index file that points to genomes.
