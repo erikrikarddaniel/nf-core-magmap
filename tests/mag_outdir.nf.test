@@ -5,8 +5,7 @@ nextflow_pipeline {
     tag "pipeline"
     profile 'test_mag_outdir'
 
-    // TODO: switch to nf-core once the fixture is merged in nf-core/test-datasets
-    def fixture_url = 'https://raw.githubusercontent.com/erikrikarddaniel/test-datasets/magmap/testdata/mag_dereplicated'
+    def fixture_url = 'https://raw.githubusercontent.com/nf-core/test-datasets/magmap/testdata/mag_dereplicated'
     def fixture_files = [
         'GenomeBinning/Dereplication/dereplicated_bins/MEGAHIT-MaxBin2-minigut.001.fa.gz',
         'GenomeBinning/Dereplication/dereplicated_bins/SPAdes-MaxBin2-test_minigut.002.fa.gz',
