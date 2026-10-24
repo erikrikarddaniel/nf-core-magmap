@@ -11,6 +11,37 @@
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    PARAMS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Types for the boolean and numeric params. Defaults stay in nextflow.config. Without a
+    type, a value given on the command line stays a String, so `--skip_fastqc false` is truthy.
+    `help` takes either a boolean or a string and cannot be typed.
+*/
+
+params {
+    save_parquet:              Boolean
+    skip_qc:                   Boolean
+    skip_fastqc:               Boolean
+    save_trimmed:              Boolean
+    skip_trimming:             Boolean
+    bbmap_minid:               Float
+    bbmap_save_bam:            Boolean
+    bbmap_save_index:          Boolean
+    save_concatenated_genomes: Boolean
+    featurecounts_fraction:    Boolean
+    skip_sourmash:             Boolean
+    sourmash_ksize:            Integer
+    sourmash_save_sourmash:    Boolean
+    version:                   Boolean
+    plaintext_email:           Boolean
+    monochrome_logs:           Boolean
+    validate_params:           Boolean
+    help_full:                 Boolean
+    show_hidden:               Boolean
+}
+
+/*
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT FUNCTIONS / MODULES / SUBWORKFLOWS / WORKFLOWS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
@@ -46,6 +77,7 @@ workflow NFCORE_MAGMAP {
     skip_sourmash               // boolean: skip Sourmash or not
     sourmash_ksize              // integer
     features                    // channel: types of features to call
+    hmms                        // channel: HMM profiles to search the proteins with
     skip_fastqc                 // boolean
     skip_qc                     // boolean
     skip_trimming               // boolean
@@ -73,6 +105,7 @@ workflow NFCORE_MAGMAP {
         skip_sourmash,
         sourmash_ksize,
         features,
+        hmms,
         skip_fastqc,
         skip_qc,
         skip_trimming,
@@ -123,7 +156,10 @@ workflow {
         params.gtdb_metadata,
         params.gtdbtk_metadata,
         params.checkm_metadata,
-        params.features
+        params.features,
+        params.hmmdir,
+        params.hmmpattern,
+        params.hmmfiles
     )
 
     //
@@ -145,6 +181,7 @@ workflow {
         params.skip_sourmash,
         params.sourmash_ksize,
         PIPELINE_INITIALISATION.out.features,
+        PIPELINE_INITIALISATION.out.hmms,
         params.skip_fastqc,
         params.skip_qc,
         params.skip_trimming,

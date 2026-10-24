@@ -16,11 +16,13 @@ include { CATPROKKATSVS        	                 } from '../modules/local/catpro
 include { CHECK_DUPLICATES                       } from '../modules/local/check_duplicates'
 include { COLLECT_GENOMESELECTION                } from '../modules/local/collect/genomeselection'
 include { COLLECT_UNASSIGNEDCOUNTS               } from '../modules/local/collect/unassignedcounts'
-include { TIDYVERSE_JOINFEATURECOUNTSACCNO       } from '../modules/local/tidyverse/joinfeaturecountsaccno'
 include { CREATE_BBMAP_INDEX                     } from '../subworkflows/local/create_bbmap_index'
 include { CUSTOM_COLLECTFEATURECOUNTS            } from '../modules/nf-core/custom/collectfeaturecounts/main'
 include { CUSTOM_COLLECTSTATS                    } from '../modules/nf-core/custom/collectstats/main'
+include { DUCKDB_JOINFEATURECOUNTSACCNO          } from '../modules/local/duckdb/joinfeaturecountsaccno'
+include { DUCKDB_SPLITFEATURECOUNTS              } from '../modules/local/duckdb/splitfeaturecounts'
 include { DUCKDB_TABLE2PARQUET                   } from '../modules/nf-core/duckdb/table2parquet'
+include { FASTA_HMMSEARCH_RANK_FASTAS            } from '../subworkflows/nf-core/fasta_hmmsearch_rank_fastas'
 include { FASTQC                                 } from '../modules/nf-core/fastqc'
 include { FASTQC_TRIMGALORE                      } from '../subworkflows/local/fastqc_trimgalore'
 include { GFFREAD                                } from '../modules/nf-core/gffread'
@@ -37,9 +39,9 @@ include { RENAME_CONTIGS                         } from '../modules/local/rename
 include { softwareVersionsToYAML                 } from '../subworkflows/nf-core/utils_nfcore_pipeline'
 include { SOURMASH                               } from '../subworkflows/local/sourmash'
 include { SUBREAD_FEATURECOUNTS as FEATURECOUNTS } from '../modules/nf-core/subread/featurecounts'
+include { TIDYVERSE_JOINHMMRANKACCNO             } from '../modules/local/tidyverse/joinhmmrankaccno'
 include { TIDYVERSE_JOINMETADATA                 } from '../modules/local/tidyverse/joinmetadata/'
 include { TIDYVERSE_SELECTANNOTATOR              } from '../modules/local/tidyverse/selectannotator/'
-include { TIDYVERSE_SPLITFEATURECOUNTS           } from '../modules/local/tidyverse/splitfeaturecounts'
 include { validateInputSamplesheet               } from '../subworkflows/local/utils_nfcore_magmap_pipeline'
 
 /*
@@ -66,6 +68,7 @@ workflow MAGMAP {
     skip_sourmash               // boolean: run Sourmash or not
     sourmash_ksize              // integer
     ch_features                 // channel: list of feature types to call
+    ch_hmms                     // channel: [ val(meta), path(hmm) ]: HMM profiles to search the proteins with
     skip_fastqc                 // boolean
     skip_qc                     // boolean
     skip_trimming               // boolean
@@ -137,13 +140,12 @@ workflow MAGMAP {
     //
     CAT_FASTQ (ch_short_reads_forcat.cat.map { meta, reads -> [meta, reads.flatten()] })
 
-    // Ensure we don't have nests of nests so that structure is in form expected for assembly
+    // Unnest the reads of samples that skip CAT_FASTQ, to match its output shape
     ch_short_reads_catskipped = ch_short_reads_forcat.skip_cat.map { meta, reads ->
         def new_reads = meta.single_end ? reads[0] : reads.flatten()
             [meta, new_reads]
     }
 
-    // Combine single run and multi-run-merged data
     ch_short_reads = channel.empty()
     ch_short_reads = CAT_FASTQ.out.reads.mix(ch_short_reads_catskipped)
 
@@ -421,6 +423,20 @@ workflow MAGMAP {
     GENOMES2ORFS(ch_collected_genomes.map { genome -> genome.genome_gff }.collect().map { genomes -> [ [ id: 'genomes' ], genomes ] })
 
     //
+    // SUBWORKFLOW: Search the proteins with HMM profiles
+    //
+    FASTA_HMMSEARCH_RANK_FASTAS(
+        ch_hmms,
+        CAT_FAA.out.concatenated_files.map { _meta, faa -> faa },
+        false
+    )
+
+    TIDYVERSE_JOINHMMRANKACCNO(
+        FASTA_HMMSEARCH_RANK_FASTAS.out.hmmrank,
+        GENOMES2ORFS.out.genomes2orfs.map { _meta, g2orfs -> g2orfs }
+    )
+
+    //
     // SUBWORKFLOW: sort bam file and produce statistics
     //
     ch_fasta_fai = CREATE_BBMAP_INDEX.out.genome_fnas
@@ -469,16 +485,15 @@ workflow MAGMAP {
 
     // Split the combined FeatureCounts output into per-feature-type files using the
     // CATPROKKATSVS orf-to-ftype mapping.
-    // .first() makes the single CATPROKKATSVS emission pair with every sample.
-    TIDYVERSE_SPLITFEATURECOUNTS(
+    DUCKDB_SPLITFEATURECOUNTS(
         FEATURECOUNTS.out.counts,
-        CATPROKKATSVS.out.tsv.map { _meta, tsv -> tsv }.first()
+        CATPROKKATSVS.out.tsv.map { _meta, tsv -> tsv }
     )
 
     //
     // MODULE: Collect featurecounts output counts in one table
     //
-    ch_collect_featurecounts = TIDYVERSE_SPLITFEATURECOUNTS.out.counts
+    ch_collect_featurecounts = DUCKDB_SPLITFEATURECOUNTS.out.counts
         .flatMap { meta, files ->
             // A single feature type emits a Path, not a List, and Path is Iterable over its
             // segments; force a List so collect{} does not walk directory components.
@@ -503,12 +518,11 @@ workflow MAGMAP {
     CUSTOM_COLLECTFEATURECOUNTS(ch_collect_featurecounts)
 
     // CUSTOM_COLLECTFEATURECOUNTS is shared with other pipelines, so the accno join stays a separate local step.
-    // .first() makes the single GENOMES2ORFS emission pair with every per-feature-type emission.
-    TIDYVERSE_JOINFEATURECOUNTSACCNO(
+    DUCKDB_JOINFEATURECOUNTSACCNO(
         CUSTOM_COLLECTFEATURECOUNTS.out.counts,
-        GENOMES2ORFS.out.genomes2orfs.map { _m, g2orfs -> g2orfs }.first()
+        GENOMES2ORFS.out.genomes2orfs.map { _m, g2orfs -> g2orfs }
     )
-    ch_fcs_for_stats      = TIDYVERSE_JOINFEATURECOUNTSACCNO.out.counts
+    ch_fcs_for_stats      = DUCKDB_JOINFEATURECOUNTSACCNO.out.counts
         .map { _meta, tsv -> tsv }
         .mix(COLLECT_UNASSIGNEDCOUNTS.out.counts.flatMap { _meta, nofeatures, ambiguity -> [ nofeatures, ambiguity ] })
         .collect()
@@ -533,8 +547,9 @@ workflow MAGMAP {
                 .mix(COLLECT_GENOMESELECTION.out.full_table.map { _meta, tsv -> tsv })
                 .mix(GENOMES2ORFS.out.genomes2orfs.map { _meta, tsv -> tsv })
                 .mix(CATPROKKATSVS.out.tsv.map { _meta, tsv -> tsv })
-                .mix(TIDYVERSE_JOINFEATURECOUNTSACCNO.out.counts.map { _meta, tsv -> tsv })
+                .mix(DUCKDB_JOINFEATURECOUNTSACCNO.out.counts.map { _meta, tsv -> tsv })
                 .mix(CUSTOM_COLLECTSTATS.out.overall_stats.map { _meta, tsv -> tsv })
+                .mix(TIDYVERSE_JOINHMMRANKACCNO.out.hmmrank.map { _meta, tsv -> tsv })
                 .map { tsv -> [ [ id: tsv.name.replaceAll(/\.tsv(\.gz)?$/, '') ], tsv ] }
         )
     }

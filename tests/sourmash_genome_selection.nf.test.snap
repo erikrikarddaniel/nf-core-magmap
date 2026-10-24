@@ -58,8 +58,14 @@
                     "stringr": "1.6.0",
                     "tidyr": "1.3.1"
                 },
+                "DUCKDB_JOINFEATURECOUNTSACCNO": {
+                    "duckdb": "1.5.5"
+                },
+                "DUCKDB_SPLITFEATURECOUNTS": {
+                    "duckdb": "1.5.5"
+                },
                 "FASTQC": {
-                    "fastqc": "0.12.1"
+                    "fastqc": "0.13.0"
                 },
                 "FEATURECOUNTS": {
                     "subread": "2.1.1"
@@ -111,11 +117,6 @@
                 "SAMTOOLS_STATS": {
                     "samtools": 1.24
                 },
-                "TIDYVERSE_JOINFEATURECOUNTSACCNO": {
-                    "R": "4.3.1",
-                    "dplyr": "1.1.4",
-                    "readr": "2.1.5"
-                },
                 "TIDYVERSE_JOINMETADATA": {
                     "R": "4.3.1",
                     "dplyr": "1.1.4",
@@ -124,13 +125,8 @@
                     "stringr": "1.5.2",
                     "tidyr": "1.3.1"
                 },
-                "TIDYVERSE_SPLITFEATURECOUNTS": {
-                    "R": "4.3.1",
-                    "dplyr": "1.1.4",
-                    "readr": "2.1.5"
-                },
                 "Workflow": {
-                    "nf-core/magmap": "v1.3.1dev"
+                    "nf-core/magmap": "v1.4.0dev"
                 }
             },
             [
@@ -232,7 +228,7 @@
                 "fastqc_sequence_counts_plot.txt:md5,fcc421ee837b2303f872145c66a4792f",
                 "fastqc_sequence_duplication_levels_plot.txt:md5,57427dfbeb25a085f516c1ee8c48e5d6",
                 "multiqc_citations.txt:md5,31ebda00f4c076224028ba5760113b5f",
-                "multiqc_fastqc.txt:md5,191ccf170e5f110119c395c54dae8845",
+                "multiqc_fastqc.txt:md5,9aa71633288bf0af3b206bfc4e310b9b",
                 "multiqc_genome_selection.txt:md5,4982d7c0ecad450a22b0ef6ff6674db2",
                 "magmap.proteins.faa.gz:md5,f5759f098fd9b2a75501a00db5ad2db6"
             ],
@@ -253,9 +249,9 @@
                 "orf\tftype\tlength\tgene\tec_number\tcog\tproduct"
             ]
         ],
-        "timestamp": "2026-09-23T21:41:16.907163382",
+        "timestamp": "2026-10-20T15:49:34.706747",
         "meta": {
-            "nf-test": "0.9.4",
+            "nf-test": "0.9.5",
             "nextflow": "26.04.6"
         }
     },
@@ -315,8 +311,14 @@
                     "stringr": "1.6.0",
                     "tidyr": "1.3.1"
                 },
+                "DUCKDB_JOINFEATURECOUNTSACCNO": {
+                    "duckdb": "1.5.5"
+                },
+                "DUCKDB_SPLITFEATURECOUNTS": {
+                    "duckdb": "1.5.5"
+                },
                 "FASTQC": {
-                    "fastqc": "0.12.1"
+                    "fastqc": "0.13.0"
                 },
                 "FEATURECOUNTS": {
                     "subread": "2.1.1"
@@ -348,11 +350,6 @@
                 "SAMTOOLS_STATS": {
                     "samtools": 1.24
                 },
-                "TIDYVERSE_JOINFEATURECOUNTSACCNO": {
-                    "R": "4.3.1",
-                    "dplyr": "1.1.4",
-                    "readr": "2.1.5"
-                },
                 "TIDYVERSE_JOINMETADATA": {
                     "R": "4.3.1",
                     "dplyr": "1.1.4",
@@ -361,13 +358,8 @@
                     "stringr": "1.5.2",
                     "tidyr": "1.3.1"
                 },
-                "TIDYVERSE_SPLITFEATURECOUNTS": {
-                    "R": "4.3.1",
-                    "dplyr": "1.1.4",
-                    "readr": "2.1.5"
-                },
                 "Workflow": {
-                    "nf-core/magmap": "v1.3.1dev"
+                    "nf-core/magmap": "v1.4.0dev"
                 }
             },
             [
@@ -460,7 +452,7 @@
                 "fastqc_sequence_counts_plot.txt:md5,fcc421ee837b2303f872145c66a4792f",
                 "fastqc_sequence_duplication_levels_plot.txt:md5,57427dfbeb25a085f516c1ee8c48e5d6",
                 "multiqc_citations.txt:md5,31ebda00f4c076224028ba5760113b5f",
-                "multiqc_fastqc.txt:md5,191ccf170e5f110119c395c54dae8845",
+                "multiqc_fastqc.txt:md5,9aa71633288bf0af3b206bfc4e310b9b",
                 "multiqc_genome_selection.txt:md5,3e9c9004b3067ba0cb71f8cd9b413ddd",
                 "magmap.proteins.faa.gz:md5,8ae424e881f890a1ae0aa42c9ebd708c"
             ],
@@ -489,9 +481,9 @@
                 "orf\tftype\tlength\tgene\tec_number\tcog\tproduct"
             ]
         ],
-        "timestamp": "2026-09-23T21:28:02.762738338",
+        "timestamp": "2026-10-20T13:21:12.979915",
         "meta": {
-            "nf-test": "0.9.4",
+            "nf-test": "0.9.5",
             "nextflow": "26.04.6"
         }
     },
@@ -554,8 +546,14 @@
                     "stringr": "1.6.0",
                     "tidyr": "1.3.1"
                 },
+                "DUCKDB_JOINFEATURECOUNTSACCNO": {
+                    "duckdb": "1.5.5"
+                },
+                "DUCKDB_SPLITFEATURECOUNTS": {
+                    "duckdb": "1.5.5"
+                },
                 "FASTQC": {
-                    "fastqc": "0.12.1"
+                    "fastqc": "0.13.0"
                 },
                 "FEATURECOUNTS": {
                     "subread": "2.1.1"
@@ -607,11 +605,6 @@
                 "SAMTOOLS_STATS": {
                     "samtools": 1.24
                 },
-                "TIDYVERSE_JOINFEATURECOUNTSACCNO": {
-                    "R": "4.3.1",
-                    "dplyr": "1.1.4",
-                    "readr": "2.1.5"
-                },
                 "TIDYVERSE_JOINMETADATA": {
                     "R": "4.3.1",
                     "dplyr": "1.1.4",
@@ -620,13 +613,8 @@
                     "stringr": "1.5.2",
                     "tidyr": "1.3.1"
                 },
-                "TIDYVERSE_SPLITFEATURECOUNTS": {
-                    "R": "4.3.1",
-                    "dplyr": "1.1.4",
-                    "readr": "2.1.5"
-                },
                 "Workflow": {
-                    "nf-core/magmap": "v1.3.1dev"
+                    "nf-core/magmap": "v1.4.0dev"
                 }
             },
             [
@@ -726,7 +714,7 @@
                 "fastqc_sequence_counts_plot.txt:md5,fcc421ee837b2303f872145c66a4792f",
                 "fastqc_sequence_duplication_levels_plot.txt:md5,57427dfbeb25a085f516c1ee8c48e5d6",
                 "multiqc_citations.txt:md5,31ebda00f4c076224028ba5760113b5f",
-                "multiqc_fastqc.txt:md5,191ccf170e5f110119c395c54dae8845",
+                "multiqc_fastqc.txt:md5,9aa71633288bf0af3b206bfc4e310b9b",
                 "multiqc_genome_selection.txt:md5,8d48a2d118da88f40cb8b2be711290d9",
                 "magmap.proteins.faa.gz:md5,f5759f098fd9b2a75501a00db5ad2db6"
             ],
@@ -770,9 +758,9 @@
                 "orf\tftype\tlength\tgene\tec_number\tcog\tproduct"
             ]
         ],
-        "timestamp": "2026-09-23T20:58:22.382081935",
+        "timestamp": "2026-10-20T13:01:23.280415",
         "meta": {
-            "nf-test": "0.9.4",
+            "nf-test": "0.9.5",
             "nextflow": "26.04.6"
         }
     },
@@ -835,8 +823,14 @@
                     "stringr": "1.6.0",
                     "tidyr": "1.3.1"
                 },
+                "DUCKDB_JOINFEATURECOUNTSACCNO": {
+                    "duckdb": "1.5.5"
+                },
+                "DUCKDB_SPLITFEATURECOUNTS": {
+                    "duckdb": "1.5.5"
+                },
                 "FASTQC": {
-                    "fastqc": "0.12.1"
+                    "fastqc": "0.13.0"
                 },
                 "FEATURECOUNTS": {
                     "subread": "2.1.1"
@@ -888,11 +882,6 @@
                 "SAMTOOLS_STATS": {
                     "samtools": 1.24
                 },
-                "TIDYVERSE_JOINFEATURECOUNTSACCNO": {
-                    "R": "4.3.1",
-                    "dplyr": "1.1.4",
-                    "readr": "2.1.5"
-                },
                 "TIDYVERSE_JOINMETADATA": {
                     "R": "4.3.1",
                     "dplyr": "1.1.4",
@@ -901,13 +890,8 @@
                     "stringr": "1.5.2",
                     "tidyr": "1.3.1"
                 },
-                "TIDYVERSE_SPLITFEATURECOUNTS": {
-                    "R": "4.3.1",
-                    "dplyr": "1.1.4",
-                    "readr": "2.1.5"
-                },
                 "Workflow": {
-                    "nf-core/magmap": "v1.3.1dev"
+                    "nf-core/magmap": "v1.4.0dev"
                 }
             },
             [
@@ -1003,7 +987,7 @@
                 "fastqc_sequence_counts_plot.txt:md5,fcc421ee837b2303f872145c66a4792f",
                 "fastqc_sequence_duplication_levels_plot.txt:md5,57427dfbeb25a085f516c1ee8c48e5d6",
                 "multiqc_citations.txt:md5,31ebda00f4c076224028ba5760113b5f",
-                "multiqc_fastqc.txt:md5,191ccf170e5f110119c395c54dae8845",
+                "multiqc_fastqc.txt:md5,9aa71633288bf0af3b206bfc4e310b9b",
                 "multiqc_genome_selection.txt:md5,4982d7c0ecad450a22b0ef6ff6674db2",
                 "magmap.proteins.faa.gz:md5,f5759f098fd9b2a75501a00db5ad2db6"
             ],
@@ -1027,9 +1011,9 @@
                 "orf\tftype\tlength\tgene\tec_number\tcog\tproduct"
             ]
         ],
-        "timestamp": "2026-09-23T20:46:57.924949692",
+        "timestamp": "2026-10-20T12:49:12.562586",
         "meta": {
-            "nf-test": "0.9.4",
+            "nf-test": "0.9.5",
             "nextflow": "26.04.6"
         }
     },
@@ -1089,8 +1073,14 @@
                     "stringr": "1.6.0",
                     "tidyr": "1.3.1"
                 },
+                "DUCKDB_JOINFEATURECOUNTSACCNO": {
+                    "duckdb": "1.5.5"
+                },
+                "DUCKDB_SPLITFEATURECOUNTS": {
+                    "duckdb": "1.5.5"
+                },
                 "FASTQC": {
-                    "fastqc": "0.12.1"
+                    "fastqc": "0.13.0"
                 },
                 "FEATURECOUNTS": {
                     "subread": "2.1.1"
@@ -1122,11 +1112,6 @@
                 "SAMTOOLS_STATS": {
                     "samtools": 1.24
                 },
-                "TIDYVERSE_JOINFEATURECOUNTSACCNO": {
-                    "R": "4.3.1",
-                    "dplyr": "1.1.4",
-                    "readr": "2.1.5"
-                },
                 "TIDYVERSE_JOINMETADATA": {
                     "R": "4.3.1",
                     "dplyr": "1.1.4",
@@ -1135,13 +1120,8 @@
                     "stringr": "1.5.2",
                     "tidyr": "1.3.1"
                 },
-                "TIDYVERSE_SPLITFEATURECOUNTS": {
-                    "R": "4.3.1",
-                    "dplyr": "1.1.4",
-                    "readr": "2.1.5"
-                },
                 "Workflow": {
-                    "nf-core/magmap": "v1.3.1dev"
+                    "nf-core/magmap": "v1.4.0dev"
                 }
             },
             [
@@ -1230,7 +1210,7 @@
                 "fastqc_sequence_counts_plot.txt:md5,fcc421ee837b2303f872145c66a4792f",
                 "fastqc_sequence_duplication_levels_plot.txt:md5,57427dfbeb25a085f516c1ee8c48e5d6",
                 "multiqc_citations.txt:md5,31ebda00f4c076224028ba5760113b5f",
-                "multiqc_fastqc.txt:md5,191ccf170e5f110119c395c54dae8845",
+                "multiqc_fastqc.txt:md5,9aa71633288bf0af3b206bfc4e310b9b",
                 "multiqc_genome_selection.txt:md5,9c60cc58c7947ca4b3ea3ecdf576566c",
                 "magmap.proteins.faa.gz:md5,8ae424e881f890a1ae0aa42c9ebd708c"
             ],
@@ -1251,9 +1231,9 @@
                 "orf\tftype\tlength\tgene\tec_number\tcog\tproduct"
             ]
         ],
-        "timestamp": "2026-09-23T21:13:46.685577193",
+        "timestamp": "2026-10-20T13:11:00.324254",
         "meta": {
-            "nf-test": "0.9.4",
+            "nf-test": "0.9.5",
             "nextflow": "26.04.6"
         }
     }
