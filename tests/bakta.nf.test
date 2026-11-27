@@ -15,9 +15,10 @@ nextflow_pipeline {
 
         then {
             def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}', 'multiqc/multiqc_plots', 'multiqc/multiqc_plots/**'])
-            def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+            def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore', ignore: ['proteins/*.faa.gz'])
             assertAll(
                 { assert workflow.success},
+                { assert path("${params.outdir}/proteins/magmap.proteins.faa.gz").linesGzip.count { it.startsWith('>') } == 12266 },
                 { assert snapshot(
                     workflow.trace.succeeded().size(),
                     removeNextflowVersion("$outputDir/pipeline_info/nf_core_magmap_software_mqc_versions.yml"),
@@ -41,9 +42,10 @@ nextflow_pipeline {
 
         then {
             def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}', 'multiqc/multiqc_plots', 'multiqc/multiqc_plots/**'])
-            def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore')
+            def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore', ignore: ['proteins/*.faa.gz'])
             assertAll(
                 { assert workflow.success},
+                { assert path("${params.outdir}/proteins/magmap.proteins.faa.gz").linesGzip.count { it.startsWith('>') } == 12227 },
                 { assert snapshot(
                     workflow.trace.succeeded().size(),
                     removeNextflowVersion("$outputDir/pipeline_info/nf_core_magmap_software_mqc_versions.yml"),
