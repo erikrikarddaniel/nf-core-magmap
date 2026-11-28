@@ -16,9 +16,18 @@ nextflow_pipeline {
         then {
             def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}', 'multiqc/multiqc_plots', 'multiqc/multiqc_plots/**'])
             def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore', ignore: ['proteins/*.faa.gz'])
+            def faa = path("${params.outdir}/proteins/magmap.proteins.faa.gz").linesGzip
+            def ids = faa.findAll { it.startsWith('>') }.collect { it.substring(1).tokenize(' ')[0] }
+            def residues = faa.findAll { ! it.startsWith('>') }.sum { it.length() }
+            // Bakta locus tags start with 20 hex characters, Prokka's with 8 letters
+            def genomes = ids.collect { it.replaceFirst(/_\d+$/, '') }.unique()
             assertAll(
                 { assert workflow.success},
-                { assert path("${params.outdir}/proteins/magmap.proteins.faa.gz").linesGzip.count { it.startsWith('>') } == 12266 },
+                { assert ids.size() in 12260..12270 },
+                { assert ids.size() == ids.unique(false).size() },
+                { assert residues in 3040000..3048000 },
+                { assert genomes.count { it ==~ /[0-9A-F]{20}/ } == 1 },
+                { assert genomes.count { it ==~ /[A-Z]{8}/ } == 6 },
                 { assert snapshot(
                     workflow.trace.succeeded().size(),
                     removeNextflowVersion("$outputDir/pipeline_info/nf_core_magmap_software_mqc_versions.yml"),
@@ -43,9 +52,18 @@ nextflow_pipeline {
         then {
             def stable_path = getAllFilesFromDir(params.outdir, relative: true, includeDir: true, ignore: ['pipeline_info/*.{html,json,txt}', 'multiqc/multiqc_plots', 'multiqc/multiqc_plots/**'])
             def stable_content = getAllFilesFromDir(params.outdir, ignoreFile: 'tests/.nftignore', ignore: ['proteins/*.faa.gz'])
+            def faa = path("${params.outdir}/proteins/magmap.proteins.faa.gz").linesGzip
+            def ids = faa.findAll { it.startsWith('>') }.collect { it.substring(1).tokenize(' ')[0] }
+            def residues = faa.findAll { ! it.startsWith('>') }.sum { it.length() }
+            // Bakta locus tags start with 20 hex characters, Prokka's with 8 letters
+            def genomes = ids.collect { it.replaceFirst(/_\d+$/, '') }.unique()
             assertAll(
                 { assert workflow.success},
-                { assert path("${params.outdir}/proteins/magmap.proteins.faa.gz").linesGzip.count { it.startsWith('>') } == 12227 },
+                { assert ids.size() in 12220..12235 },
+                { assert ids.size() == ids.unique(false).size() },
+                { assert residues in 3035000..3043000 },
+                { assert genomes.count { it ==~ /[0-9A-F]{20}/ } == 7 },
+                { assert genomes.count { it ==~ /[A-Z]{8}/ } == 0 },
                 { assert snapshot(
                     workflow.trace.succeeded().size(),
                     removeNextflowVersion("$outputDir/pipeline_info/nf_core_magmap_software_mqc_versions.yml"),
